@@ -418,6 +418,9 @@ processparameters(int argc,            /* Number of command-line args  */
                  rn, rn, optarg);
     /* Handle each case: */
     switch(rn){
+    case CLA_LINEDB:
+      hints->ntli    = nchar(optarg, ',') + 1;        /* Count files */
+      hints->tlifile = splitnzero_alloc(optarg, ','); /* Get files   */
     case CLA_CIAFILE:
       hints->ncia    = nchar(optarg, ',') + 1;        /* Count files */
       hints->ciafile = splitnzero_alloc(optarg, ','); /* Get files   */

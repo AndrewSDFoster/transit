@@ -360,7 +360,9 @@ struct transithint{
 
   double ethresh;       /* Lower extinction-coefficient threshold            */
   char **ciafile;
+  char **tlifile;
   int ncia;
+  int ntli;
 
 };
 
