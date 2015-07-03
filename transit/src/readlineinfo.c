@@ -180,7 +180,8 @@ readtli_bin(FILE *fp,
   iso->isoratio = (double       *)calloc(1,   sizeof(double));
 
   /* Read info for each database:                                           */
-  for(i=0; i<ndb; i++){
+  //for(i=0; i<ndb; i++){
+  for(i=iso->n_db; i<iso->n_db+ndb; i++){
     /* Allocate and get DB's name:                                          */
     fread(&rs, sizeof(unsigned short), 1, fp);         /* Get DBname length */
     iso->db[i].n = (char *)calloc(rs+1, sizeof(char)); /* Allocate          */
@@ -201,6 +202,7 @@ readtli_bin(FILE *fp,
     fread(&nDBiso, sizeof(unsigned short), 1, fp);
     transitprint(2, verblevel, "  Number of temperatures: %d\n"
                                "  Number of isotopes:     %d\n", nT, nDBiso);
+    nDBiso += iso->n_db;
     li->db[i].t  = nT;
     iso->db[i].i = nDBiso;
 
@@ -210,16 +212,24 @@ readtli_bin(FILE *fp,
     transitprint(3, verblevel, "  Temperatures: [%6.1f, %6.1f, ..., %6.1f]\n",
                                T[0], T[1], T[nT-1]);
 
+    printf("%d %d %d\n", correliso, nDBiso, correliso+nDBiso);
     /* Reallocate memory to account for new isotopes:                       */
     li->isov  = (prop_isov  *)realloc(li->isov,
                                       (correliso+nDBiso)*sizeof(prop_isov));
+    if (!iso->isof){
+      printf("FOUND YER PROBLEM\n");
+    }
+    printf("Oink %p\n", iso->isof);
     iso->isof = (prop_isof  *)realloc(iso->isof,
                                       (correliso+nDBiso)*sizeof(prop_isof));
+    printf("Moo %p\n", iso->isof);
     iso->isoratio = (double *)realloc(iso->isoratio,
                                       (correliso+nDBiso)*sizeof(double));
+    printf("Quack\n");
     /* Allocate memory for this DB's partition function:                    */
     li->isov[correliso].z = (double *)calloc((correliso+nDBiso)*nT,
                                              sizeof(double));
+    printf("Squeek\n");
 
     transitDEBUG(21, verblevel, "So far, cumIsotopes: %i, at databases: %i, "
                  "position %li.\n", correliso+nDBiso, i, ftell(fp));
@@ -272,7 +282,7 @@ readtli_bin(FILE *fp,
   }
 
   transitprint(3, verblevel, "Cumulative number of isotopes per DB: [");
-  for (i=0; i<ndb; i++)
+  for (i=iso->n_db; i<iso->n_db+ndb; i++)
     transitprint(3, verblevel,"%2d, ", iso->db[i].s);
   transitprint(3, verblevel, "\b\b].\n");
   transitprint(3, verblevel, "acum Iso: %2d.\n", niso);
@@ -280,13 +290,28 @@ readtli_bin(FILE *fp,
   //transitprint(3, verblevel, "Iso ratio: %.5g %.5g %.5g %.5g\n", iso->isoratio[0], iso->isoratio[1], iso->isoratio[2], iso->isoratio[3]);
 
   /* Update structure values:                                               */
-  li->ni = iso->n_i = niso; /* Number of isotopes                           */
-  li->ndb = ndb;            /* Number of databases                          */
+  li->ni     += niso;            /* Number of isotopes                           */
+  iso->n_i   += niso;
+  li->ndb    += ndb;            /* Number of databases                          */
+  iso->n_db  += ndb;          /* Number of databases                          */
   /* Position of first line data (there's still one integer to be read):    */
   li->endinfo = ftell(fp) + sizeof(int);
-  li->wi = iniw;            /* Initial wavelength                           */
-  li->wf = finw;            /* Final wavelength                             */
-  iso->n_db = ndb;          /* Number of databases                          */
+  if (li->wi){
+    if (iniw < li->wi){
+      li->wi = iniw;            /* Initial wavelength                           */
+    }
+  }
+  else{
+    li->wi = iniw;
+  }
+  if (li->wf){
+    if (finw > li->wf){
+      li->wf = finw;            /* Final wavelength                             */
+    }
+  }
+  else{
+    li->wf = finw;
+  }
   /* Allocate isotope's variable data                                       */
   iso->isov = (prop_isov *)calloc(iso->n_i, sizeof(prop_isov));
 
@@ -457,8 +482,17 @@ checkrange(struct transit *tr,   /* General parameters and  hints           */
 int
 readinfo_tli(struct transit *tr,
              struct lineinfo *li){
+  int i;
   int rn;
   FILE *fp;  /* File pointer of info file: */
+
+  //initialize things to zero that will be incremented by the code.
+  tr->ds.iso->n_i=0;
+  tr->ds.iso->n_db=0;
+  tr->ds.li->ndb=0;
+  tr->ds.li->ni=0;
+  tr->ds.li->wi=0;
+  tr->ds.li->wf=0;
 
   /* Decalre and initialize the union sign:                         */
   /* sign.s contains the magic numbers of this machine's and TLI's: */
@@ -474,68 +508,74 @@ readinfo_tli(struct transit *tr,
     transiterror(TERR_SERIOUS|TERR_ALLOWCONT, "Undefined TLI file name.\n");
     return -2;
   }
-  /* Check that the file exists and make a pointer to read it: */
-  if((rn=fileexistopen(th->f_line, &fp)) != 1){
-    transiterror(TERR_SERIOUS|TERR_ALLOWCONT,
-                 "Line info file '%s' is not found. "
-                 "fileexistopen() error code %i.\n", th->f_line, rn);
-    return -1;
-  }
-  /* Set transit TLI file pointer and TLI file name: */
-  tr->fp_line = fp;
-  tr->f_line  = th->f_line;
 
-  /* Read first four bytes, they should be either
-  `(0xff-T)(0xff-L)(0xff-I)(0xff)' or '\#TLI'. They are stored as integer.  
-  This checks whether the machine where the TLI file and the one this
-  program is being run have the same endian order.  If the first two are
-  '\#TLI', then the first line should also start as '\#TLI-ascii'           */
-  fread(sign.s, sizeof(int32_t), 1, fp);
+  for(i=0; i < th->ntli; i++){
+    th->f_line = th->tlifile[i];
 
-  /* Determine if TLI is binary (asciiline=0) or ASCII (asciiline=1):       */
-  li->asciiline = 0;
-  transitDEBUG(13, verblevel, "Comparing %i and %i for Magic Number (len: "
-                            "%li)\n", sign.s[0], sign.s[1], sizeof(sign.s[0]));
-  
-  if(sign.s[0] != sign.s[1]){
-    /* Does it look like an ASCII TLI?, if so check it:                     */
-    rn = strncasecmp(sign.sig, "#TLI", 4);  /* FINDME: strncasecmp */
-    if(!rn){
-      strcpy(line, "#TLI");
-      fread(line+4, sizeof(char), 6, fp);
-      rn = strncasecmp(line, "#TLI-ascii", 10);
-    }
-    /* If it wasn't a valid TLI, throw error and exit:                      */
-    if(rn){
+    /* Check that the file exists and make a pointer to read it: */
+    if((rn=fileexistopen(th->f_line, &fp)) != 1){
       transiterror(TERR_SERIOUS|TERR_ALLOWCONT,
-                   "The file '%s' has not a valid TLI format. It might be "
-                   "because the machine were the file was created have "
-                   "different endian order, which is incompatible.\n",
-                   tr->f_line);
-      return -3;
+                   "Line info file '%s' is not found. "
+                   "fileexistopen() error code %i.\n", th->f_line, rn);
+      return -1;
     }
-    li->asciiline = 1;
-    /* Ignore the rest of the first line: */
-    fgetupto_err(line, maxline, fp, &linetoolong, tr->f_line, 1);
+    /* Set transit TLI file pointer and TLI file name: */
+    tr->fp_line = fp;
+    tr->f_line  = th->f_line;
+
+    /* Read first four bytes, they should be either
+    `(0xff-T)(0xff-L)(0xff-I)(0xff)' or '\#TLI'. They are stored as integer.  
+    This checks whether the machine where the TLI file and the one this
+    program is being run have the same endian order.  If the first two are
+    '\#TLI', then the first line should also start as '\#TLI-ascii'           */
+    fread(sign.s, sizeof(int32_t), 1, fp);
+
+    /* Determine if TLI is binary (asciiline=0) or ASCII (asciiline=1):       */
+    li->asciiline = 0;
+    transitDEBUG(13, verblevel, "Comparing %i and %i for Magic Number (len: "
+                              "%li)\n", sign.s[0], sign.s[1], sizeof(sign.s[0]));
+    
+    if(sign.s[0] != sign.s[1]){
+      /* Does it look like an ASCII TLI?, if so check it:                     */
+      rn = strncasecmp(sign.sig, "#TLI", 4);  /* FINDME: strncasecmp */
+      if(!rn){
+        strcpy(line, "#TLI");
+        fread(line+4, sizeof(char), 6, fp);
+        rn = strncasecmp(line, "#TLI-ascii", 10);
+      }
+      /* If it wasn't a valid TLI, throw error and exit:                      */
+      if(rn){
+        transiterror(TERR_SERIOUS|TERR_ALLOWCONT,
+                     "The file '%s' has not a valid TLI format. It might be "
+                     "because the machine were the file was created have "
+                     "different endian order, which is incompatible.\n",
+                     tr->f_line);
+        return -3;
+      }
+      li->asciiline = 1;
+      /* Ignore the rest of the first line: */
+      fgetupto_err(line, maxline, fp, &linetoolong, tr->f_line, 1);
+    }
+
+    /* Read binary TLI:  */
+    if((rn=readtli_bin(fp, tr, li))!=0){
+      transiterror(TERR_CRITICAL|TERR_ALLOWCONT,
+                   "readtli_bin() return error code %i.\n", rn);
+      return -6;
+    }
+    transitprint(3, verblevel, "TLI file read from %g to %g microns.\n",
+                               li->wi, li->wf);
+
+    /* Declare linetransition struct and set wavelength and lower energy unit 
+       factors (As of TLI v5, always in microns and cm-1, respectively):      */
+    struct line_transition *lt = &li->lt;
+    lt->wfct = TLI_WAV_UNITS;
+    lt->efct = TLI_E_UNITS;
+
+    /* Close TLI file pointer, set progres indicator and return success:      */
+    fclose(fp);
   }
 
-  /* Read binary TLI:  */
-  if((rn=readtli_bin(fp, tr, li))!=0){
-    transiterror(TERR_CRITICAL|TERR_ALLOWCONT,
-                 "readtli_bin() return error code %i.\n", rn);
-    return -6;
-  }
-  transitprint(3, verblevel, "TLI file read from %g to %g microns.\n",
-                             li->wi, li->wf);
-
-  /* Declare linetransition struct and set wavelength and lower energy unit 
-     factors (As of TLI v5, always in microns and cm-1, respectively):      */
-  struct line_transition *lt = &li->lt;
-  lt->wfct = TLI_WAV_UNITS;
-  lt->efct = TLI_E_UNITS;
-
-  /* Close TLI file pointer, set progres indicator and return success:      */
-  fclose(fp);
   tr->pi |= TRPI_READINFO;
   return 1;
 }
@@ -561,117 +601,122 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
       nread,             /* Number of transitions to read for each isotope  */
       *isotran,          /* Number of transitions per isotope in TLI        */
       start,             /* Position of first LT for isotope in TLI         */
-      i,                 /* for-loop index                                  */
+      i, j,              /* for-loop indices                                */
       offset=0,          /* Isotope offset (in number of transitions)       */
       wl_loc, iso_loc,   /* Offsets for isoID, Elow, and gf data            */
       el_loc, gf_loc,    /* (in memory)                                     */
       rn;                /* Return IDs                                      */
   /* Indices of first and last transitions to be stored                     */
   long ifirst, ilast;
+  struct transithint *th = tr->ds.th;
 
   /* Auxiliary variables to keep wavelength limits:                         */
   PREC_LNDATA iniw = li->wavs.i * li->wavs.fct / TLI_WAV_UNITS;
   PREC_LNDATA finw = li->wavs.f * li->wavs.fct / TLI_WAV_UNITS;
   PREC_LNDATA wltmp;   /* Auxiliary variable to store wavelength            */
 
-  /* Open line data file:                                                   */
-  if((rn=fileexistopen(tr->f_line, &fp)) != 1){
-    transiterror(TERR_SERIOUS|TERR_ALLOWCONT,
-                 "Data file '%s' not found.  fileexistopen() error "
-                 "code: %i.\n", tr->f_line, rn);
-    return -1;
+  for(j=0; j < th->ntli; j++){
+    th->f_line = th->tlifile[j];
+    /* Open line data file:                                                   */
+    if((rn=fileexistopen(tr->f_line, &fp)) != 1){
+      transiterror(TERR_SERIOUS|TERR_ALLOWCONT,
+                   "Data file '%s' not found.  fileexistopen() error "
+                   "code: %i.\n", tr->f_line, rn);
+      return -1;
+    }
+  
+    /* Find starting point in datafile.  First with a binary search, then
+       with a sequential search:                                              */ 
+  
+    /* Check seekability:                                                     */
+    if(fseek(fp, 0, SEEK_CUR)){
+      transiterror(TERR_CRITICAL|TERR_ALLOWCONT,
+                   "File '%s' was not seekable.\n", tr->f_line);
+      return -2;
+    }
+  
+    /* Read total number of transitions in TLI file:                          */
+    /* FINDME: May be better to put endinfo to the right position
+               (avoid this  -sizeof(int)):                                    */
+    fseek(fp, li->endinfo - sizeof(int), SEEK_SET);
+    fread(&nlines, sizeof(int), 1, fp);
+    transitprint(1, verblevel, "TLI has %d transition lines.\n", nlines);
+  
+    /* Number of isotopes in line transition data:                            */
+    printf("%p", fp);
+    fread(&niso, sizeof(int), 1, fp);
+    transitprint(10, verblevel, "TLI has %d isotopes.\n", niso);
+    /* Number of transitions per isotope:                                     */
+    isotran = calloc(niso, sizeof(int));
+    fread(isotran, sizeof(int), niso, fp);
+    for (i=0; i<niso; i++){
+      transitprint(20, verblevel, "Ntransitions[%d]: %d.\n", i, isotran[i]);
+    }
+  
+    /* Get current location of pointer:                                       */
+    start = ftell(fp);
+    li->n_l = 0;
+  
+    /* Allocation for line transition structures:                             */
+    /* The size might be larger than needed, adjust at the end                */
+    lt->gf    = (PREC_LNDATA *)calloc(nlines, sizeof(PREC_LNDATA));
+    lt->wl    = (PREC_LNDATA *)calloc(nlines, sizeof(PREC_LNDATA));
+    lt->elow  = (PREC_LNDATA *)calloc(nlines, sizeof(PREC_LNDATA));
+    lt->isoid = (short       *)calloc(nlines, sizeof(short));
+    /* Check for allocation errors:                                           */
+    if(!lt->gf || !lt->wl || !lt->elow || !lt->isoid)
+      transiterror(TERR_CRITICAL|TERR_ALLOC, "Couldn't allocate memory for "
+                   "linetran structure array of length %i, in function "
+                   "readdatarng.\n", nlines);
+  
+    /* Starting location for wavelength, isoID, Elow, and gf data in file:    */
+    wl_loc  = start;
+    iso_loc = wl_loc  + nlines*sizeof(PREC_LNDATA);
+    el_loc  = iso_loc + nlines*sizeof(short);
+    gf_loc  = el_loc  + nlines*sizeof(PREC_LNDATA);
+  
+    for (i=0; i<niso; i++){
+      transitprint(3, verblevel, "\nInit pos: %d\n", start);
+      /* Do binary search in units of TLI:                                    */
+      datafileBS(fp, start, isotran[i], iniw, &ifirst, sizeof(PREC_LNDATA), 0);
+      datafileBS(fp, start, isotran[i], finw, &ilast,  sizeof(PREC_LNDATA), 1);
+      ifirst += offset;
+      ilast  += offset;
+      transitprint(5, verblevel, "Initial and final entries are: "
+                                 "%li and %li.\n", ifirst, ilast);
+  
+      transitprint(3, verblevel, "\nLT Pos: %ld\n", li->n_l);
+      /* Number of transitions to read:                                       */
+      nread = ilast - ifirst + 1;
+      /* Move pointer to each section and read info:                          */
+      /* Wavelength:                                                          */
+      fseek(fp, ifirst*sizeof(PREC_LNDATA) + wl_loc,  SEEK_SET);
+      fread(lt->wl+li->n_l,    sizeof(PREC_LNDATA), nread, fp);
+      /* Isotope ID:                                                          */
+      fseek(fp, ifirst*sizeof(short)       + iso_loc, SEEK_SET);
+      fread(lt->isoid+li->n_l, sizeof(short),       nread, fp);
+      /* Lower-state energy:                                                  */
+      fseek(fp, ifirst*sizeof(PREC_LNDATA) + el_loc,  SEEK_SET);
+      fread(lt->elow+li->n_l,  sizeof(PREC_LNDATA), nread, fp);
+      /* gf:                                                                  */
+      fseek(fp, ifirst*sizeof(PREC_LNDATA) + gf_loc,  SEEK_SET);
+      fread(lt->gf+li->n_l,    sizeof(PREC_LNDATA), nread, fp);
+  
+      /* Count the number of lines:                                           */
+      li->n_l += nread;
+      /* Move the wl offset to next isotope:                                  */
+      start += isotran[i]*sizeof(double);
+      offset += isotran[i];
+    }
+  
+    /* Re-allocate arrays to their correct size:                              */
+    lt->wl    = (PREC_LNDATA *)realloc(lt->wl,    li->n_l*sizeof(PREC_LNDATA));
+    lt->isoid = (short       *)realloc(lt->isoid, li->n_l*sizeof(short));
+    lt->elow  = (PREC_LNDATA *)realloc(lt->elow,  li->n_l*sizeof(PREC_LNDATA));
+    lt->gf    = (PREC_LNDATA *)realloc(lt->gf,    li->n_l*sizeof(PREC_LNDATA));
+  
+    fclose(fp);               /* Close file                                   */
   }
-
-  /* Find starting point in datafile.  First with a binary search, then
-     with a sequential search:                                              */ 
-
-  /* Check seekability:                                                     */
-  if(fseek(fp, 0, SEEK_CUR)){
-    transiterror(TERR_CRITICAL|TERR_ALLOWCONT,
-                 "File '%s' was not seekable.\n", tr->f_line);
-    return -2;
-  }
-
-  /* Read total number of transitions in TLI file:                          */
-  /* FINDME: May be better to put endinfo to the right position
-             (avoid this  -sizeof(int)):                                    */
-  fseek(fp, li->endinfo - sizeof(int), SEEK_SET);
-  fread(&nlines, sizeof(int), 1, fp);
-  transitprint(1, verblevel, "TLI has %d transition lines.\n", nlines);
-
-  /* Number of isotopes in line transition data:                            */
-  fread(&niso, sizeof(int), 1, fp);
-  transitprint(10, verblevel, "TLI has %d isotopes.\n", niso);
-  /* Number of transitions per isotope:                                     */
-  isotran = calloc(niso, sizeof(int));
-  fread(isotran, sizeof(int), niso, fp);
-  for (i=0; i<niso; i++){
-    transitprint(20, verblevel, "Ntransitions[%d]: %d.\n", i, isotran[i]);
-  }
-
-  /* Get current location of pointer:                                       */
-  start = ftell(fp);
-  li->n_l = 0;
-
-  /* Allocation for line transition structures:                             */
-  /* The size might be larger than needed, adjust at the end                */
-  lt->gf    = (PREC_LNDATA *)calloc(nlines, sizeof(PREC_LNDATA));
-  lt->wl    = (PREC_LNDATA *)calloc(nlines, sizeof(PREC_LNDATA));
-  lt->elow  = (PREC_LNDATA *)calloc(nlines, sizeof(PREC_LNDATA));
-  lt->isoid = (short       *)calloc(nlines, sizeof(short));
-  /* Check for allocation errors:                                           */
-  if(!lt->gf || !lt->wl || !lt->elow || !lt->isoid)
-    transiterror(TERR_CRITICAL|TERR_ALLOC, "Couldn't allocate memory for "
-                 "linetran structure array of length %i, in function "
-                 "readdatarng.\n", nlines);
-
-  /* Starting location for wavelength, isoID, Elow, and gf data in file:    */
-  wl_loc  = start;
-  iso_loc = wl_loc  + nlines*sizeof(PREC_LNDATA);
-  el_loc  = iso_loc + nlines*sizeof(short);
-  gf_loc  = el_loc  + nlines*sizeof(PREC_LNDATA);
-
-  for (i=0; i<niso; i++){
-    transitprint(3, verblevel, "\nInit pos: %d\n", start);
-    /* Do binary search in units of TLI:                                    */
-    datafileBS(fp, start, isotran[i], iniw, &ifirst, sizeof(PREC_LNDATA), 0);
-    datafileBS(fp, start, isotran[i], finw, &ilast,  sizeof(PREC_LNDATA), 1);
-    ifirst += offset;
-    ilast  += offset;
-    transitprint(5, verblevel, "Initial and final entries are: "
-                               "%li and %li.\n", ifirst, ilast);
-
-    transitprint(3, verblevel, "\nLT Pos: %ld\n", li->n_l);
-    /* Number of transitions to read:                                       */
-    nread = ilast - ifirst + 1;
-    /* Move pointer to each section and read info:                          */
-    /* Wavelength:                                                          */
-    fseek(fp, ifirst*sizeof(PREC_LNDATA) + wl_loc,  SEEK_SET);
-    fread(lt->wl+li->n_l,    sizeof(PREC_LNDATA), nread, fp);
-    /* Isotope ID:                                                          */
-    fseek(fp, ifirst*sizeof(short)       + iso_loc, SEEK_SET);
-    fread(lt->isoid+li->n_l, sizeof(short),       nread, fp);
-    /* Lower-state energy:                                                  */
-    fseek(fp, ifirst*sizeof(PREC_LNDATA) + el_loc,  SEEK_SET);
-    fread(lt->elow+li->n_l,  sizeof(PREC_LNDATA), nread, fp);
-    /* gf:                                                                  */
-    fseek(fp, ifirst*sizeof(PREC_LNDATA) + gf_loc,  SEEK_SET);
-    fread(lt->gf+li->n_l,    sizeof(PREC_LNDATA), nread, fp);
-
-    /* Count the number of lines:                                           */
-    li->n_l += nread;
-    /* Move the wl offset to next isotope:                                  */
-    start += isotran[i]*sizeof(double);
-    offset += isotran[i];
-  }
-
-  /* Re-allocate arrays to their correct size:                              */
-  lt->wl    = (PREC_LNDATA *)realloc(lt->wl,    li->n_l*sizeof(PREC_LNDATA));
-  lt->isoid = (short       *)realloc(lt->isoid, li->n_l*sizeof(short));
-  lt->elow  = (PREC_LNDATA *)realloc(lt->elow,  li->n_l*sizeof(PREC_LNDATA));
-  lt->gf    = (PREC_LNDATA *)realloc(lt->gf,    li->n_l*sizeof(PREC_LNDATA));
-
-  fclose(fp);               /* Close file                                   */
   tr->pi |= TRPI_READDATA;  /* Update progress indicator                    */
   return li->n_l;           /* Return the number of lines read              */
 }

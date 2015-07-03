@@ -418,9 +418,6 @@ processparameters(int argc,            /* Number of command-line args  */
                  rn, rn, optarg);
     /* Handle each case: */
     switch(rn){
-    case CLA_LINEDB:
-      hints->ntli    = nchar(optarg, ',') + 1;        /* Count files */
-      hints->tlifile = splitnzero_alloc(optarg, ','); /* Get files   */
     case CLA_CIAFILE:
       hints->ncia    = nchar(optarg, ',') + 1;        /* Count files */
       hints->ciafile = splitnzero_alloc(optarg, ','); /* Get files   */
@@ -473,8 +470,10 @@ processparameters(int argc,            /* Number of command-line args  */
       strcpy(hints->f_atm, optarg);
       break;
     case CLA_LINEDB:     /* Line database file name    */
+      hints->ntli    = nchar(optarg, ',') + 1;        /* Count files */
+      hints->tlifile = splitnzero_alloc(optarg, ','); /* Get files   */
       hints->f_line = (char *)realloc(hints->f_line, strlen(optarg)+1);
-      strcpy(hints->f_line, optarg);
+      hints->f_line = hints->f_line=hints->tlifile;
       break;
     case CLA_MOLFILE:    /* Known molecular information                     */
       hints->f_molfile = (char *)realloc(hints->f_molfile, strlen(optarg)+1);
