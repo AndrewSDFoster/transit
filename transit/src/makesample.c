@@ -476,7 +476,7 @@ makeradsample(struct transit *tr){
     for (i=0; i<nmol; i++)
       free_mol(mol->molec+i);
     for (i=0; i<niso; i++)
-      free_isov(iso->isov+i);
+      free_isov(iso->isov[0]+i);
     freemem_samp(rad);
     tr->pi &= ~(TRPI_MAKERAD);
   }
@@ -529,8 +529,8 @@ makeradsample(struct transit *tr){
     molec[i].n = nrad;
   }
   for (i=0; i<niso; i++){
-    iso->isov[i].z = (PREC_ZREC *)calloc(nrad, sizeof(PREC_ZREC));
-    iso->isov[i].n = nrad;
+    iso->isov[0][i].z = (PREC_ZREC *)calloc(nrad, sizeof(PREC_ZREC));
+    iso->isov[0][i].n = nrad;
   }
 
   atmt->tfct = atms->atm.tfct;
@@ -554,14 +554,14 @@ makeradsample(struct transit *tr){
   /* Interpolate isotopic partition function and cross section:             */
   for(i=0; i<ndb; i++){       /* For each database separately:              */
     iso1db = iso->db[i].s;    /* Index of first isotope in current DB       */
-    isovs  = li->isov + iso1db;
+    isovs  = *(li->isov) + iso1db;
 
     resamplex(flag, li->db[i].t, li->db[i].T, nrad, atmt->t);
     for(j=0; j < iso->db[i].i; j++){
       transitASSERT(iso1db + j > niso-1,
                     "Trying to reference an isotope (%i) outside the extended "
                     "limit (%i).\n", iso1db+j, niso-1);
-      resampley(flag, 1, isovs[j].z, iso->isov[iso1db+j].z);
+      resampley(flag, 1, isovs[j].z, iso->isov[0][iso1db+j].z);
     }
   }
   resample_free();

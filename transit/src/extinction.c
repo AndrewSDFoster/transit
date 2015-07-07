@@ -426,12 +426,12 @@ computemolext(struct transit *tr, /* transit struct                         */
       csdiameter = (mol->radius[j] + mol->radius[iso->imol[i]]);
       /* Line width:                                                        */
       alphal[i] += density[j]/mol->mass[j] * csdiameter * csdiameter *
-                   sqrt(1/iso->isof[i].m + 1/mol->mass[j]);
+                   sqrt(1/iso->isof[0][i].m + 1/mol->mass[j]);
     }
     alphal[i] *= florentz;
 
     /* Doppler profile width (divided by central wavenumber):               */
-    alphad[i] = fdoppler / sqrt(iso->isof[i].m);
+    alphad[i] = fdoppler / sqrt(iso->isof[0][i].m);
 
     /* Print Lorentz and Doppler broadening widths:                         */
     if(i <= 0)
@@ -479,7 +479,7 @@ computemolext(struct transit *tr, /* transit struct                         */
             SIGCTE     * lt->gf[ln]           *       /* Constant * gf      */
             exp(-EXPCTE*lt->efct*lt->elow[ln]/temp) * /* Level population   */
             (1-exp(-EXPCTE*wavn/temp))        /       /* Induced emission   */
-            iso->isof[i].m                    /       /* Isotope mass       */
+            iso->isof[0][i].m                    /       /* Isotope mass       */
             Z[i];                                     /* Partition function */
     /* Maximum line strength among all transitions for each species:        */
     if (kmax[m] == 0){
@@ -525,7 +525,7 @@ computemolext(struct transit *tr, /* transit struct                         */
         break;
     }
     /* The rest of the factors:                                             */
-    propto_k *= SIGCTE*iso->isoratio[i] / (iso->isof[i].m * Z[i]);
+    propto_k *= SIGCTE*iso->isoratio[i] / (iso->isof[0][i].m * Z[i]);
 
     /* If line is too weak, skip it:                                        */
     if (propto_k < tr->ds.th->ethresh * kmax[m]){

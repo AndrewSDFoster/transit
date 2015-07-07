@@ -140,7 +140,7 @@ struct lineinfo{             /* Line information parameters:                */
                                 Zero if a binary file.                      */
   int ni;                    /* Number of isotopes                          */
   int ndb;                   /* Number of databases                         */
-  prop_isov *isov;           /* Variable isotope information (w/temp) [iso] */
+  prop_isov **isov;           /* Variable isotope information (w/temp) [iso] */
   prop_dbnoext *db;          /* Temperature info from databases [DB]        */
   PREC_NREC n_l;             /* Number of lines in database                 */
 };
@@ -245,8 +245,8 @@ struct geometry{
 
 
 struct isotopes{
-  prop_isof *isof;    /* Fixed isotope information      [n_i]               */
-  prop_isov *isov;    /* Variable isotope information   [n_i]               */
+  prop_isof **isof;    /* Fixed isotope information      [n_i]               */
+  prop_isov **isov;    /* Variable isotope information   [n_i]               */
   double *isoratio;   /* Isotopic abundance ratio       [n_i]               */
   int *imol;          /* Molecule index for this isotope[n_i]               */
   prop_db *db;        /* Database's info [n_db]                             */

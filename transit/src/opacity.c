@@ -223,7 +223,7 @@ calcopacity(struct transit *tr,
     for(j=0; j < iso->db[i].i; j++){
       transitASSERT(iso1db + j > iso->n_i-1, "Trying to reference an isotope "
              "(%i) outside the extended limit (%i).\n", iso1db+j, iso->n_i-1);
-      resampley(flag, 1, li->isov[iso1db+j].z, op->ziso[iso1db+j]);
+      resampley(flag, 1, li->isov[0][iso1db+j].z, op->ziso[iso1db+j]);
     }
   }
   resample_free();

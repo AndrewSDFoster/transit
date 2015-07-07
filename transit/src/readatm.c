@@ -230,7 +230,7 @@ telldefaults(struct isotopes *iso,
   /* Densities for all isotopes: */
   for(i=0; i<iso->n_i; i++)
       transitprint(1, verblevel, " %-8s: density %8g g/cm3\n", 
-                                   iso->isof[i].n,
+                                   iso->isof[0][i].n,
                                    at->molec[iso->imol[i]].d[0]);
 }
 

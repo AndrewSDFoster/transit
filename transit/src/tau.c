@@ -216,7 +216,7 @@ tau(struct transit *tr){
       for (i=0; i < tr->ds.mol->nmol; i++)
         density[i] = tr->ds.mol->molec[i].d[rnn-1];
       for (i=0; i < tr->ds.iso->n_i; i++)
-        Z[i]       = tr->ds.iso->isov[i].z [rnn-1];
+        Z[i]       = tr->ds.iso->isov[0][i].z [rnn-1];
       
       if((rn=computemolext(tr, ex->e+(rnn-1), tr->atm.t[rnn-1]*tr->atm.tfct,
                            density, Z, 0)) != 0)
@@ -282,7 +282,7 @@ tau(struct transit *tr){
               for (i=0; i < tr->ds.mol->nmol; i++)
                 density[i] = tr->ds.mol->molec[i].d[lastr];
               for (i=0; i < tr->ds.iso->n_i; i++)
-                Z[i]       = tr->ds.iso->isov[i].z [lastr];
+                Z[i]       = tr->ds.iso->isov[0][i].z [lastr];
               if((rn=computemolext(tr, ex->e+lastr,
                          tr->atm.t[lastr]*tr->atm.tfct, density, Z, 0)) != 0)
                 transiterror(TERR_CRITICAL,  "computemolext() returned error "
