@@ -217,10 +217,10 @@ calcopacity(struct transit *tr,
   flag = 1;  /* FINDME: Temporary hack                                      */
   /* Interpolate isotopic partition function:                               */
   for(i=0; i<iso->n_db; i++){  /* For each database separately:             */
-    iso1db = iso->db[i].s;     /* Index of first isotope in current DB      */
+    iso1db = iso->db[0][i].s;     /* Index of first isotope in current DB      */
 
     resamplex(flag, li->db[i].t, li->db[i].T, Ntemp, op->temp);
-    for(j=0; j < iso->db[i].i; j++){
+    for(j=0; j < iso->db[0][i].i; j++){
       transitASSERT(iso1db + j > iso->n_i-1, "Trying to reference an isotope "
              "(%i) outside the extended limit (%i).\n", iso1db+j, iso->n_i-1);
       resampley(flag, 1, li->isov[0][iso1db+j].z, op->ziso[iso1db+j]);

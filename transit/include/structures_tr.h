@@ -247,9 +247,9 @@ struct geometry{
 struct isotopes{
   prop_isof **isof;    /* Fixed isotope information      [n_i]               */
   prop_isov **isov;    /* Variable isotope information   [n_i]               */
-  double *isoratio;   /* Isotopic abundance ratio       [n_i]               */
+  double **isoratio;   /* Isotopic abundance ratio       [n_i]               */
   int *imol;          /* Molecule index for this isotope[n_i]               */
-  prop_db *db;        /* Database's info [n_db]                             */
+  prop_db **db;        /* Database's info [n_db]                             */
   int n_db,           /* Number of databases                                */
       n_i,            /* Number of isotopes                                 */
       nmol;           /* Number of different molecules having a line list   */

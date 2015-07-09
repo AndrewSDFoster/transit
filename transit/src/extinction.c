@@ -475,7 +475,7 @@ computemolext(struct transit *tr, /* transit struct                         */
       continue;
 
     /* Calculate the extinction coefficient except the broadening factor:   */
-    propto_k = iso->isoratio[i]               *       /* Density            */
+    propto_k = iso->isoratio[0][i]               *       /* Density            */
             SIGCTE     * lt->gf[ln]           *       /* Constant * gf      */
             exp(-EXPCTE*lt->efct*lt->elow[ln]/temp) * /* Level population   */
             (1-exp(-EXPCTE*wavn/temp))        /       /* Induced emission   */
@@ -525,7 +525,7 @@ computemolext(struct transit *tr, /* transit struct                         */
         break;
     }
     /* The rest of the factors:                                             */
-    propto_k *= SIGCTE*iso->isoratio[i] / (iso->isof[0][i].m * Z[i]);
+    propto_k *= SIGCTE*iso->isoratio[0][i] / (iso->isof[0][i].m * Z[i]);
 
     /* If line is too weak, skip it:                                        */
     if (propto_k < tr->ds.th->ethresh * kmax[m]){
