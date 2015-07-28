@@ -134,14 +134,14 @@ struct lineinfo{             /* Line information parameters:                */
   unsigned short lr_rev;     /* lineread revision                           */
   prop_samp wavs;            /* Wavelength sampling                         */
   double wi, wf;             /* Initial and final wavelength in database    */
-  long endinfo;              /* Position at the end of the info part
+  long * endinfo;              /* Position at the end of the info part
                                 of the info file                            */
   int asciiline;             /* TLI line of first transition.
                                 Zero if a binary file.                      */
   int ni;                    /* Number of isotopes                          */
   int ndb;                   /* Number of databases                         */
-  prop_isov **isov;           /* Variable isotope information (w/temp) [iso] */
-  prop_dbnoext *db;          /* Temperature info from databases [DB]        */
+  prop_isov **isov;          /* Variable isotope information (w/temp) [iso] */
+  prop_dbnoext **db;         /* Temperature info from databases [DB]        */
   PREC_NREC n_l;             /* Number of lines in database                 */
 };
 
@@ -245,14 +245,14 @@ struct geometry{
 
 
 struct isotopes{
-  prop_isof **isof;    /* Fixed isotope information      [n_i]               */
-  prop_isov **isov;    /* Variable isotope information   [n_i]               */
-  double **isoratio;   /* Isotopic abundance ratio       [n_i]               */
-  int *imol;          /* Molecule index for this isotope[n_i]               */
+  prop_isof **isof;    /* Fixed isotope information      [1][n_i]            */
+  prop_isov **isov;    /* Variable isotope information   [1][n_i]            */
+  double **isoratio;   /* Isotopic abundance ratio       [1][n_i]            */
+  int *imol;           /* Molecule index for this isotope   [n_i]            */
   prop_db **db;        /* Database's info [n_db]                             */
-  int n_db,           /* Number of databases                                */
-      n_i,            /* Number of isotopes                                 */
-      nmol;           /* Number of different molecules having a line list   */
+  int n_db,            /* Number of databases                                */
+      n_i,             /* Number of isotopes                                 */
+      nmol;            /* Number of different molecules having a line list   */
 };
 
 struct molecules{
@@ -316,7 +316,6 @@ struct cia{
    transit' upon approval                                                   */
 struct transithint{  
   char *f_atm,          /* Atmosphere filename                              */
-       *f_line,         /* TLI filename                                     */
        *f_opa,          /* Opacity filename                                 */
        *f_outmod,       /* Output modulation filename                       */
        *f_toomuch,      /* Output toomuch filename                          */

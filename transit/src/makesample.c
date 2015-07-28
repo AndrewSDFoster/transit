@@ -556,7 +556,7 @@ makeradsample(struct transit *tr){
     iso1db = iso->db[0][i].s;    /* Index of first isotope in current DB       */
     isovs  = *(li->isov) + iso1db;
 
-    resamplex(flag, li->db[i].t, li->db[i].T, nrad, atmt->t);
+    resamplex(flag, li->db[0][i].t, li->db[0][i].T, nrad, atmt->t);
     for(j=0; j < iso->db[0][i].i; j++){
       transitASSERT(iso1db + j > niso-1,
                     "Trying to reference an isotope (%i) outside the extended "

@@ -60,6 +60,7 @@ int
 opacity(struct transit *tr){
   struct transithint *th = tr->ds.th; /* transithint struct                 */
   static struct opacity op;           /* The opacity struct                 */
+//  int i, j;    //troubleshooting index for loops, delete
 
   /* Set the opacity struct's mem to 0:                                     */
   memset(&op, 0, sizeof(struct opacity));
@@ -72,6 +73,13 @@ opacity(struct transit *tr){
   int fe = fileexistopen(th->f_opa, &tr->fp_opa);
   tr->f_opa = th->f_opa;  /* Set file name in transit struct                */
   transitprint(10, verblevel, "Opacity-file exist status = %d\n", fe);
+
+//  for(i=0; i<tr->ds.iso->n_i; i++){
+//    printf("Voigt Partition function #%d\n", i);
+//    for(j=0; j<tr->ds.li->isov[0][i].n; j++){
+//      printf("%e\n", tr->ds.li->isov[0][i].z[j]);
+//    }
+//  }
 
   /* The opacity file exists:                                               */
   if (fe == 1){
@@ -219,7 +227,7 @@ calcopacity(struct transit *tr,
   for(i=0; i<iso->n_db; i++){  /* For each database separately:             */
     iso1db = iso->db[0][i].s;     /* Index of first isotope in current DB      */
 
-    resamplex(flag, li->db[i].t, li->db[i].T, Ntemp, op->temp);
+    resamplex(flag, li->db[0][i].t, li->db[0][i].T, Ntemp, op->temp);
     for(j=0; j < iso->db[0][i].i; j++){
       transitASSERT(iso1db + j > iso->n_i-1, "Trying to reference an isotope "
              "(%i) outside the extended limit (%i).\n", iso1db+j, iso->n_i-1);
