@@ -313,8 +313,10 @@ restextinct(FILE *in,
     return -3;
 
   rn = fread(ex->e[0], sizeof(PREC_RES), nwn*nrad,in);
+  for(int j=0; j<nrad*nwn; j++)
+    printf("%g\n", ex->e[0][i]);
   if(rn!=nwn*nrad) return -1;
-  rn = fread(ex->computed, sizeof(PREC_RES), nrad, in);
+  rn = fread(ex->computed, sizeof(PREC_RES), nrad,in);
   if(rn!=nrad) return -1;
 
   for(i=1; i<nrad; i++){

@@ -472,8 +472,6 @@ processparameters(int argc,            /* Number of command-line args  */
     case CLA_LINEDB:     /* Line database file name    */
       hints->ntli    = nchar(optarg, ',') + 1;        /* Count files */
       hints->tlifile = splitnzero_alloc(optarg, ','); /* Get files   */
-      hints->f_line = (char *)realloc(hints->f_line, strlen(optarg)+1);
-      hints->f_line = hints->f_line=hints->tlifile;
       break;
     case CLA_MOLFILE:    /* Known molecular information                     */
       hints->f_molfile = (char *)realloc(hints->f_molfile, strlen(optarg)+1);
@@ -865,7 +863,8 @@ savehint(FILE *out,
 
   /* Save strings:                                                          */
   savestr(out, hints->f_atm);
-  savestr(out, hints->f_line);
+  for(int i=0; i<hints->ntli; i++)
+    savestr(out, hints->tlifile[i]);
   savestr(out, hints->f_outmod);
   savestr(out, hints->f_outflux);
   savestr(out, hints->f_outintens);
@@ -907,7 +906,8 @@ resthint(FILE *in,
   /* Restore strings:                                                       */
   rn = reststr(in, &hint->f_atm);
   if(rn<0) return rn; else res += rn;
-  rn = reststr(in, &hint->f_line);
+  for(int i=0; i<hint->ntli; i++)
+    rn = reststr(in, &hint->tlifile[i]);
   if(rn<0) return rn; else res += rn;
   rn = reststr(in, &hint->f_outmod);
   if(rn<0) return rn; else res += rn;
@@ -963,8 +963,8 @@ void
 freemem_hints(struct transithint *h){
   /* Free strings which are copied into transit:                            */
   free(h->f_atm);
-  free(h->f_line);
   free(h->f_outmod);
+  free(h->tlifile);
   free(h->f_outflux);
   free(h->f_outintens);
   free(h->f_toomuch);

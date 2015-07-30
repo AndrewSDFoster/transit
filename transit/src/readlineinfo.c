@@ -677,7 +677,6 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
     fread(&niso, sizeof(int), 1, fp);
     transitprint(10, verblevel, "TLI has %d isotopes.\n", niso);
     /* Number of transitions per isotope:                                     */
-printf("%d %d\n", niso, totiso);
     isotran = realloc(isotran, (niso+totiso)*sizeof(int));
     fread(isotran+totiso, sizeof(int), niso, fp);
     for (i=totiso; i<totiso+niso; i++){
@@ -709,7 +708,6 @@ printf("%d %d\n", niso, totiso);
       transitprint(3, verblevel, "\nInit pos: %d\n", start);
       /* Do binary search in units of TLI:                                    */
       datafileBS(fp, start, isotran[i], iniw, &ifirst, sizeof(PREC_LNDATA), 0);
-printf("%d %d %e %e\n", i, j, finw, isotran[i]);
       datafileBS(fp, start, isotran[i], finw, &ilast,  sizeof(PREC_LNDATA), 1);
       ifirst += offset;
       ilast  += offset;
@@ -723,7 +721,6 @@ printf("%d %d %e %e\n", i, j, finw, isotran[i]);
       /* Wavelength:                                                          */
       fseek(fp, ifirst*sizeof(PREC_LNDATA) + wl_loc,  SEEK_SET);
       fread(lt->wl+li->n_l,    sizeof(PREC_LNDATA), nread, fp);
-printf("%e\n", lt->wl[i]);
       /* Isotope ID:                                                          */
       fseek(fp, ifirst*sizeof(short)       + iso_loc, SEEK_SET);
       fread(lt->isoid+li->n_l, sizeof(short),       nread, fp);

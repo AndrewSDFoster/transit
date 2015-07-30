@@ -256,8 +256,10 @@ tau(struct transit *tr){
 
     /* Put the extinction values in a new array, the values may be
        temporarily overwritten by (fcn)(), but they should be restored:     */
-    for(ri=0; ri < rnn; ri++)
+    for(ri=0; ri < rnn; ri++){
       er[ri] = e[ri][wi] + e_s[ri] + e_c[ri] + e_cia[wi][ri];
+      printf("er[ri] = %g\n", er[ri]);
+    }
 
     /* For each height:                                                     */
     for(ri=0; ri < nh; ri++){
@@ -282,7 +284,7 @@ tau(struct transit *tr){
               for (i=0; i < tr->ds.mol->nmol; i++)
                 density[i] = tr->ds.mol->molec[i].d[lastr];
               for (i=0; i < tr->ds.iso->n_i; i++)
-                Z[i]       = tr->ds.iso->isov[0][i].z [lastr];
+                Z[i]       = tr->ds.iso->isov[0][i].z[lastr];
               if((rn=computemolext(tr, ex->e+lastr,
                          tr->atm.t[lastr]*tr->atm.tfct, density, Z, 0)) != 0)
                 transiterror(TERR_CRITICAL,  "computemolext() returned error "
