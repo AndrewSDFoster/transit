@@ -118,10 +118,10 @@ struct atm_isoprop{    /* Proportional-abundance isotopic parameters: */
 
 
 struct line_transition{  /* Line transition parameters:                     */
-  PREC_LNDATA *wl;       /* Wavelength                                      */
-  PREC_LNDATA *elow;     /* Lower-state energy                              */
-  PREC_LNDATA *gf;       /* gf value                                        */
-  short *isoid;          /* Isotope ID (Assumed to be in range)             */
+  PREC_LNDATA **wl;       /* Wavelength                                      */
+  PREC_LNDATA **elow;     /* Lower-state energy                              */
+  PREC_LNDATA **gf;       /* gf value                                        */
+  short **isoid;          /* Isotope ID (Assumed to be in range)             */
   double wfct;           /* wl units factor to cgs                          */
   double efct;           /* elow units factor to cgs                        */
 };

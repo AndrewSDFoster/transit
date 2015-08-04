@@ -644,10 +644,20 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
 
   //Allocating things before the loop
   isotran = calloc(1, sizeof(int));
-  lt->gf    = (PREC_LNDATA *)calloc(1, sizeof(PREC_LNDATA));
-  lt->wl    = (PREC_LNDATA *)calloc(1, sizeof(PREC_LNDATA));
-  lt->elow  = (PREC_LNDATA *)calloc(1, sizeof(PREC_LNDATA));
-  lt->isoid = (short       *)calloc(1, sizeof(short));
+  lt->gf    = (PREC_LNDATA **)calloc(1, sizeof(PREC_LNDATA*));
+  lt->wl    = (PREC_LNDATA **)calloc(1, sizeof(PREC_LNDATA*));
+  lt->elow  = (PREC_LNDATA **)calloc(1, sizeof(PREC_LNDATA*));
+  lt->isoid = (short       **)calloc(1, sizeof(short*));
+  lt->gf[0]    = (PREC_LNDATA *)calloc(1, sizeof(PREC_LNDATA));
+  lt->wl[0]    = (PREC_LNDATA *)calloc(1, sizeof(PREC_LNDATA));
+  lt->elow[0]  = (PREC_LNDATA *)calloc(1, sizeof(PREC_LNDATA));
+  lt->isoid[0] = (short       *)calloc(1, sizeof(short));
+    
+/* Check for allocation errors:                                           */
+    if(!lt->gf[0] || !lt->wl[0] || !lt->elow[0] || !lt->isoid[0] || !lt->gf || !lt->wl || !lt->elow || !lt->isoid)
+      transiterror(TERR_CRITICAL|TERR_ALLOC, "Couldn't allocate memory for "
+                   "linetran structure array, in function "
+                   "readdatarng.\n");
 
   for(j=0; j < th->ntli; j++){
     /* Open line data file:                                                   */
@@ -688,21 +698,16 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
   
     /* Allocation for line transition structures:                             */
     /* The size might be larger than needed, adjust at the end                */
-    lt->gf    = (PREC_LNDATA *)realloc(lt->gf, nlines*sizeof(PREC_LNDATA));
-    lt->wl    = (PREC_LNDATA *)realloc(lt->wl, nlines*sizeof(PREC_LNDATA));
-    lt->elow  = (PREC_LNDATA *)realloc(lt->elow, nlines*sizeof(PREC_LNDATA));
-    lt->isoid = (short       *)realloc(lt->isoid, nlines*sizeof(short));
-    /* Check for allocation errors:                                           */
-    if(!lt->gf || !lt->wl || !lt->elow || !lt->isoid)
-      transiterror(TERR_CRITICAL|TERR_ALLOC, "Couldn't allocate memory for "
-                   "linetran structure array of length %i, in function "
-                   "readdatarng.\n", nlines);
+    lt->gf[0]    = (PREC_LNDATA *)realloc(lt->gf[0], (li->n_l+nlines)*sizeof(PREC_LNDATA));
+    lt->wl[0]    = (PREC_LNDATA *)realloc(lt->wl[0], (li->n_l+nlines)*sizeof(PREC_LNDATA));
+    lt->elow[0]  = (PREC_LNDATA *)realloc(lt->elow[0], (li->n_l+nlines)*sizeof(PREC_LNDATA));
+    lt->isoid[0] = (short       *)realloc(lt->isoid[0], (li->n_l+nlines)*sizeof(short));
   
     /* Starting location for wavelength, isoID, Elow, and gf data in file:    */
     wl_loc  = start;
-    iso_loc = wl_loc  + nlines*sizeof(PREC_LNDATA);
-    el_loc  = iso_loc + nlines*sizeof(short);
-    gf_loc  = el_loc  + nlines*sizeof(PREC_LNDATA);
+    iso_loc = wl_loc  + (li->n_l+nlines)*sizeof(PREC_LNDATA);
+    el_loc  = iso_loc + (li->n_l+nlines)*sizeof(short);
+    gf_loc  = el_loc  + (li->n_l+nlines)*sizeof(PREC_LNDATA);
   
     for (i=totiso; i<totiso+niso; i++){
       transitprint(3, verblevel, "\nInit pos: %d\n", start);
@@ -720,16 +725,18 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
       /* Move pointer to each section and read info:                          */
       /* Wavelength:                                                          */
       fseek(fp, ifirst*sizeof(PREC_LNDATA) + wl_loc,  SEEK_SET);
-      fread(lt->wl+li->n_l,    sizeof(PREC_LNDATA), nread, fp);
+      fread(lt->wl[0]+li->n_l,    sizeof(PREC_LNDATA), nread, fp);
       /* Isotope ID:                                                          */
       fseek(fp, ifirst*sizeof(short)       + iso_loc, SEEK_SET);
-      fread(lt->isoid+li->n_l, sizeof(short),       nread, fp);
+      fread(lt->isoid[0]+li->n_l, sizeof(short),       nread, fp);
+//if(lt->isoid[0][li->n_l] < 0)
+//printf("ERROR\n");
       /* Lower-state energy:                                                  */
       fseek(fp, ifirst*sizeof(PREC_LNDATA) + el_loc,  SEEK_SET);
-      fread(lt->elow+li->n_l,  sizeof(PREC_LNDATA), nread, fp);
+      fread(lt->elow[0]+li->n_l,  sizeof(PREC_LNDATA), nread, fp);
       /* gf:                                                                  */
       fseek(fp, ifirst*sizeof(PREC_LNDATA) + gf_loc,  SEEK_SET);
-      fread(lt->gf+li->n_l,    sizeof(PREC_LNDATA), nread, fp);
+      fread(lt->gf[0]+li->n_l,    sizeof(PREC_LNDATA), nread, fp);
   
       /* Count the number of lines:                                           */
       li->n_l += nread;
@@ -739,10 +746,10 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
     }
   
     /* Re-allocate arrays to their correct size:                              */
-    lt->wl    = (PREC_LNDATA *)realloc(lt->wl,    li->n_l*sizeof(PREC_LNDATA));
-    lt->isoid = (short       *)realloc(lt->isoid, li->n_l*sizeof(short));
-    lt->elow  = (PREC_LNDATA *)realloc(lt->elow,  li->n_l*sizeof(PREC_LNDATA));
-    lt->gf    = (PREC_LNDATA *)realloc(lt->gf,    li->n_l*sizeof(PREC_LNDATA));
+    lt->wl[0]    = (PREC_LNDATA *)realloc(lt->wl[0],    li->n_l*sizeof(PREC_LNDATA));
+    lt->isoid[0] = (short       *)realloc(lt->isoid[0], li->n_l*sizeof(short));
+    lt->elow[0]  = (PREC_LNDATA *)realloc(lt->elow[0],  li->n_l*sizeof(PREC_LNDATA));
+    lt->gf[0]    = (PREC_LNDATA *)realloc(lt->gf[0],    li->n_l*sizeof(PREC_LNDATA));
 
     totiso += niso;
   
@@ -785,6 +792,10 @@ readlineinfo(struct transit *tr){
 
   /* Check for an opacity file:                                             */
   filecheck = access(th->f_opa, F_OK);
+  /* Check the remainder range of the hinted values
+     related to line database reading:                                      */
+  if((rn=checkrange(tr, &li)) < 0)
+    transiterror(TERR_SERIOUS, "checkrange() returned error code %i.\n", rn);
   /* Only read the TLI file if there is no opacity file                     */
   if(filecheck == -1){
     /* Read data file:                                                      */
@@ -804,10 +815,6 @@ readlineinfo(struct transit *tr){
   /* FINDME: Move this out of readline later.                               */
   rn = setimol(tr);
 
-  /* Check the remainder range of the hinted values
-     related to line database reading:                                      */
-  if((rn=checkrange(tr, &li)) < 0)
-    transiterror(TERR_SERIOUS, "checkrange() returned error code %i.\n", rn);
   /* Output status so far if the verbose level is enough:                   */
   if(rn>0 && verblevel>1)
     transiterror(TERR_WARNING, "checkrange() modified the suggested "
@@ -893,9 +900,13 @@ freemem_linetransition(struct line_transition *lt,
                        long *pi){
   /* Free the four arrays of lt:                                            */
   free(lt->wl);
+  free(lt->wl[0]);
   free(lt->elow);
+  free(lt->elow[0]);
   free(lt->gf);
+  free(lt->gf[0]);
   free(lt->isoid);
+  free(lt->isoid[0]);
 
   /* Unset appropiate flags:                                                */
   *pi &= ~TRPI_READDATA;

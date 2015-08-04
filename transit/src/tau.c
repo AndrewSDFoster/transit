@@ -258,7 +258,6 @@ tau(struct transit *tr){
        temporarily overwritten by (fcn)(), but they should be restored:     */
     for(ri=0; ri < rnn; ri++){
       er[ri] = e[ri][wi] + e_s[ri] + e_c[ri] + e_cia[wi][ri];
-      printf("er[ri] = %g\n", er[ri]);
     }
 
     /* For each height:                                                     */

@@ -465,21 +465,27 @@ computemolext(struct transit *tr, /* transit struct                         */
   /* Determine the maximum and minimum extinction-coefficient in this layer */
   for(ln=0; ln<nlines; ln++){
     /* Wavenumber of line transition:                                       */
-    wavn = 1.0 / (lt->wl[ln] * lt->wfct);
+    wavn = 1.0 / (lt->wl[0][ln] * lt->wfct);
     /* Isotope ID of line:                                                  */
-    i = lt->isoid[ln];
+    i = lt->isoid[0][ln];
     /* Species index in output array:                                       */
     if (permol)
       m = valueinarray(op->molID, mol->ID[iso->imol[i]], op->Nmol);
-
     /* If it is beyond the lower limit, skip to next line transition:       */
     if ((wavn < tr->wns.i) || (wavn > tr->owns.v[onwn-1]))
       continue;
 
+//printf("ln = %d\n", ln);
+//printf("i = %d\n", i);
+//printf("iso->isoratio[0][i] = %g\n", iso->isoratio[0][i]);
+//printf("lt->gf[0][ln] = %g\n", lt->gf[0][ln]);
+//printf("lt->elow[0][ln] = %g\n", lt->elow[0][ln]);
+//printf("iso->isof[0][i].m = %g\n", iso->isof[0][i].m);
+//printf("Z[i] = %g\n", Z[i]);
     /* Calculate the extinction coefficient except the broadening factor:   */
     propto_k = iso->isoratio[0][i]               *       /* Density            */
-            SIGCTE     * lt->gf[ln]           *       /* Constant * gf      */
-            exp(-EXPCTE*lt->efct*lt->elow[ln]/temp) * /* Level population   */
+            SIGCTE     * lt->gf[0][ln]           *       /* Constant * gf      */
+            exp(-EXPCTE*lt->efct*lt->elow[0][ln]/temp) * /* Level population   */
             (1-exp(-EXPCTE*wavn/temp))        /       /* Induced emission   */
             iso->isof[0][i].m                    /       /* Isotope mass       */
             Z[i];                                     /* Partition function */
@@ -492,10 +498,12 @@ computemolext(struct transit *tr, /* transit struct                         */
     }
   }
 
+//printf("OINK\n");
+
   /* Compute the spectra, proceed for every line:                           */
   for(ln=0; ln<nlines; ln++){
-    wavn = 1.0/(lt->wl[ln]*lt->wfct);
-    i    = lt->isoid[ln];
+    wavn = 1.0/(lt->wl[0][ln]*lt->wfct);
+    i    = lt->isoid[0][ln];
     if (permol)
       m = valueinarray(op->molID, mol->ID[iso->imol[i]], op->Nmol);
 
@@ -503,8 +511,8 @@ computemolext(struct transit *tr, /* transit struct                         */
       continue;
 
     /* Extinction coefficient (factors depending on the line transition):   */
-    propto_k = lt->gf[ln]                              *
-               exp(-EXPCTE*lt->efct*lt->elow[ln]/temp) *
+    propto_k = lt->gf[0][ln]                              *
+               exp(-EXPCTE*lt->efct*lt->elow[0][ln]/temp) *
                (1-exp(-EXPCTE*wavn/temp));
 
     /* Index of closest oversampled wavenumber:                             */
@@ -513,14 +521,15 @@ computemolext(struct transit *tr, /* transit struct                         */
       iown++;
 
     /* Check if the next line falls on the same sampling index:             */
-    while (ln != nlines-1 && lt->isoid[ln+1] == i){
-      next_wn = 1.0/(lt->wl[ln+1]*lt->wfct);
+//printf("%d != %d && %d == %d\n", ln, nlines-1, lt->isoid[0][ln+1], i);
+    while (ln != nlines-1 && lt->isoid[0][ln+1] == i){
+      next_wn = 1.0/(lt->wl[0][ln+1]*lt->wfct);
       if (fabs(next_wn - tr->owns.v[iown]) < odwn){
         nadd++;
         ln++;
         /* Add the contribution from this line into the opacity:            */
-        propto_k += lt->gf[ln]                                    *
-                    exp(-EXPCTE * lt->efct * lt->elow[ln] / temp) *
+        propto_k += lt->gf[0][ln]                                    *
+                    exp(-EXPCTE * lt->efct * lt->elow[0][ln] / temp) *
                     (1-exp(-EXPCTE*next_wn/temp));
       }
       else
