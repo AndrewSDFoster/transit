@@ -647,11 +647,11 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
   lt->gf    = (PREC_LNDATA **)calloc(1, sizeof(PREC_LNDATA*));
   lt->wl    = (PREC_LNDATA **)calloc(1, sizeof(PREC_LNDATA*));
   lt->elow  = (PREC_LNDATA **)calloc(1, sizeof(PREC_LNDATA*));
-  lt->isoid = (short       **)calloc(1, sizeof(short*));
+  lt->isoid = (unsigned short **)calloc(1, sizeof(unsigned short*));
   lt->gf[0]    = (PREC_LNDATA *)calloc(1, sizeof(PREC_LNDATA));
   lt->wl[0]    = (PREC_LNDATA *)calloc(1, sizeof(PREC_LNDATA));
   lt->elow[0]  = (PREC_LNDATA *)calloc(1, sizeof(PREC_LNDATA));
-  lt->isoid[0] = (short       *)calloc(1, sizeof(short));
+  lt->isoid[0] = (unsigned short       *)calloc(1, sizeof(unsigned short));
     
 /* Check for allocation errors:                                           */
     if(!lt->gf[0] || !lt->wl[0] || !lt->elow[0] || !lt->isoid[0] || !lt->gf || !lt->wl || !lt->elow || !lt->isoid)
@@ -701,7 +701,7 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
     lt->gf[0]    = (PREC_LNDATA *)realloc(lt->gf[0], (li->n_l+nlines)*sizeof(PREC_LNDATA));
     lt->wl[0]    = (PREC_LNDATA *)realloc(lt->wl[0], (li->n_l+nlines)*sizeof(PREC_LNDATA));
     lt->elow[0]  = (PREC_LNDATA *)realloc(lt->elow[0], (li->n_l+nlines)*sizeof(PREC_LNDATA));
-    lt->isoid[0] = (short       *)realloc(lt->isoid[0], (li->n_l+nlines)*sizeof(short));
+    lt->isoid[0] = (unsigned short *)realloc(lt->isoid[0], (li->n_l+nlines)*sizeof(unsigned short));
   
     /* Starting location for wavelength, isoID, Elow, and gf data in file:    */
     wl_loc  = start;
@@ -728,9 +728,11 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
       fread(lt->wl[0]+li->n_l,    sizeof(PREC_LNDATA), nread, fp);
       /* Isotope ID:                                                          */
       fseek(fp, ifirst*sizeof(short)       + iso_loc, SEEK_SET);
-      fread(lt->isoid[0]+li->n_l, sizeof(short),       nread, fp);
-//if(lt->isoid[0][li->n_l] < 0)
-//printf("ERROR\n");
+      fread(lt->isoid[0]+li->n_l, sizeof(unsigned short),       nread, fp);
+if(lt->isoid[0][li->n_l] < 0){
+printf("ERROR i = %d\n", lt->isoid[0][li->n_l]);
+lt->isoid[0][li->n_l] = 0;
+}
       /* Lower-state energy:                                                  */
       fseek(fp, ifirst*sizeof(PREC_LNDATA) + el_loc,  SEEK_SET);
       fread(lt->elow[0]+li->n_l,  sizeof(PREC_LNDATA), nread, fp);
@@ -747,9 +749,9 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
   
     /* Re-allocate arrays to their correct size:                              */
     lt->wl[0]    = (PREC_LNDATA *)realloc(lt->wl[0],    li->n_l*sizeof(PREC_LNDATA));
-    lt->isoid[0] = (short       *)realloc(lt->isoid[0], li->n_l*sizeof(short));
     lt->elow[0]  = (PREC_LNDATA *)realloc(lt->elow[0],  li->n_l*sizeof(PREC_LNDATA));
     lt->gf[0]    = (PREC_LNDATA *)realloc(lt->gf[0],    li->n_l*sizeof(PREC_LNDATA));
+    lt->isoid[0] = (unsigned short *)realloc(lt->isoid[0], li->n_l*sizeof(unsigned short));
 
     totiso += niso;
   
@@ -899,14 +901,14 @@ int
 freemem_linetransition(struct line_transition *lt,
                        long *pi){
   /* Free the four arrays of lt:                                            */
-  free(lt->wl);
   free(lt->wl[0]);
-  free(lt->elow);
+  free(lt->wl);
   free(lt->elow[0]);
-  free(lt->gf);
+  free(lt->elow);
   free(lt->gf[0]);
-  free(lt->isoid);
+  free(lt->gf);
   free(lt->isoid[0]);
+  free(lt->isoid);
 
   /* Unset appropiate flags:                                                */
   *pi &= ~TRPI_READDATA;

@@ -475,13 +475,6 @@ computemolext(struct transit *tr, /* transit struct                         */
     if ((wavn < tr->wns.i) || (wavn > tr->owns.v[onwn-1]))
       continue;
 
-//printf("ln = %d\n", ln);
-//printf("i = %d\n", i);
-//printf("iso->isoratio[0][i] = %g\n", iso->isoratio[0][i]);
-//printf("lt->gf[0][ln] = %g\n", lt->gf[0][ln]);
-//printf("lt->elow[0][ln] = %g\n", lt->elow[0][ln]);
-//printf("iso->isof[0][i].m = %g\n", iso->isof[0][i].m);
-//printf("Z[i] = %g\n", Z[i]);
     /* Calculate the extinction coefficient except the broadening factor:   */
     propto_k = iso->isoratio[0][i]               *       /* Density            */
             SIGCTE     * lt->gf[0][ln]           *       /* Constant * gf      */
@@ -493,8 +486,8 @@ computemolext(struct transit *tr, /* transit struct                         */
     if (kmax[m] == 0){
       kmax[m] = kmin[m] = propto_k;
     } else{
-      kmax[m] = fmax(kmax[m], propto_k);
-      kmin[m] = fmin(kmin[m], propto_k);
+      kmax[m] = (double) fmax(kmax[m], propto_k);
+      kmin[m] = (double) fmin(kmin[m], propto_k);
     }
   }
 
@@ -544,8 +537,12 @@ computemolext(struct transit *tr, /* transit struct                         */
       continue;
     }
     /* Multiply by the species density:                                     */
-    if (permol == 0)
+    if (!permol){
+      //fprintf(stderr, "%d\n", i);
+      //fprintf(stderr, "%d\n", iso->imol[i]);
+      //fprintf(stderr, "%g\n", density[iso->imol[i]]);
       propto_k *= density[iso->imol[i]];
+    }
 
     /* Index of closest (but not larger than) dynamic-sampling wavenumber:  */
     idwn = (wavn - tr->wns.i)/ddwn;
@@ -589,6 +586,9 @@ computemolext(struct transit *tr, /* transit struct                         */
     }
     neval++;
   }
+
+//printf("MOO\n");
+
   /* Downsample ktmp to the final sampling size:                            */
   for (m=0; m < Nmol; m++)
     downsample(ktmp[m], kiso[m], dnwn, tr->owns.o/ofactor);
