@@ -123,8 +123,8 @@ datafileBS(FILE *fp,            /* File pointer                             */
   *resultp = loc;
   fseek(fp, offs + reclength*loc, SEEK_SET);
   fread(&temp, sizeof(PREC_LNDATA), 1, fp);
-  transitprint(1, verblevel, "Binary search found wavelength: %.8f at "
-                             "position %li.\n", temp*tli_to_microns, loc);
+  //transitprint(1, verblevel, "Binary search found wavelength: %.8f at "
+  //                           "position %li.\n", temp*tli_to_microns, loc);
 }
 
 
@@ -528,7 +528,7 @@ readinfo_tli(struct transit *tr,
   li->isov[0]      = (prop_isov     *)calloc(1,   sizeof(prop_isov    ));
   iso->isoratio    = (double       **)calloc(1,   sizeof(double      *));
   iso->isoratio[0] = (double        *)calloc(1,   sizeof(double       ));
-  li->endinfo      = (double        *)calloc(th->ntli, sizeof(double  ));
+  li->endinfo      = (long          *)calloc(th->ntli, sizeof(long    ));
 
  
 
@@ -644,14 +644,14 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
 
   //Allocating things before the loop
   isotran = calloc(1, sizeof(int));
-  lt->gf    = (PREC_LNDATA **)calloc(1, sizeof(PREC_LNDATA*));
-  lt->wl    = (PREC_LNDATA **)calloc(1, sizeof(PREC_LNDATA*));
-  lt->elow  = (PREC_LNDATA **)calloc(1, sizeof(PREC_LNDATA*));
-  lt->isoid = (unsigned short **)calloc(1, sizeof(unsigned short*));
-  lt->gf[0]    = (PREC_LNDATA *)calloc(1, sizeof(PREC_LNDATA));
-  lt->wl[0]    = (PREC_LNDATA *)calloc(1, sizeof(PREC_LNDATA));
-  lt->elow[0]  = (PREC_LNDATA *)calloc(1, sizeof(PREC_LNDATA));
-  lt->isoid[0] = (unsigned short       *)calloc(1, sizeof(unsigned short));
+  lt->gf       = (PREC_LNDATA **)calloc(1, sizeof(PREC_LNDATA*));
+  lt->wl       = (PREC_LNDATA **)calloc(1, sizeof(PREC_LNDATA*));
+  lt->elow     = (PREC_LNDATA **)calloc(1, sizeof(PREC_LNDATA*));
+  lt->isoid    = (short       **)calloc(1, sizeof(short*      ));
+  lt->gf[0]    = (PREC_LNDATA  *)calloc(1, sizeof(PREC_LNDATA ));
+  lt->wl[0]    = (PREC_LNDATA  *)calloc(1, sizeof(PREC_LNDATA ));
+  lt->elow[0]  = (PREC_LNDATA  *)calloc(1, sizeof(PREC_LNDATA ));
+  lt->isoid[0] = (short        *)calloc(1, sizeof(short       ));
     
 /* Check for allocation errors:                                           */
     if(!lt->gf[0] || !lt->wl[0] || !lt->elow[0] || !lt->isoid[0] || !lt->gf || !lt->wl || !lt->elow || !lt->isoid)
@@ -693,21 +693,21 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
       transitprint(20, verblevel, "Ntransitions[%d]: %d.\n", i, isotran[i]);
     }
   
-    /* Get current location of pointer:                                       */
-    start = ftell(fp);
-  
     /* Allocation for line transition structures:                             */
     /* The size might be larger than needed, adjust at the end                */
     lt->gf[0]    = (PREC_LNDATA *)realloc(lt->gf[0], (li->n_l+nlines)*sizeof(PREC_LNDATA));
     lt->wl[0]    = (PREC_LNDATA *)realloc(lt->wl[0], (li->n_l+nlines)*sizeof(PREC_LNDATA));
     lt->elow[0]  = (PREC_LNDATA *)realloc(lt->elow[0], (li->n_l+nlines)*sizeof(PREC_LNDATA));
-    lt->isoid[0] = (unsigned short *)realloc(lt->isoid[0], (li->n_l+nlines)*sizeof(unsigned short));
+    lt->isoid[0] = (short *)realloc(lt->isoid[0], (li->n_l+nlines)*sizeof(short));
+  
+    /* Get current location of pointer:                                       */
+    start = ftell(fp);
   
     /* Starting location for wavelength, isoID, Elow, and gf data in file:    */
     wl_loc  = start;
-    iso_loc = wl_loc  + (li->n_l+nlines)*sizeof(PREC_LNDATA);
-    el_loc  = iso_loc + (li->n_l+nlines)*sizeof(short);
-    gf_loc  = el_loc  + (li->n_l+nlines)*sizeof(PREC_LNDATA);
+    iso_loc = wl_loc  + (nlines)*sizeof(PREC_LNDATA);
+    el_loc  = iso_loc + (nlines)*sizeof(short      );
+    gf_loc  = el_loc  + (nlines)*sizeof(PREC_LNDATA);
   
     for (i=totiso; i<totiso+niso; i++){
       transitprint(3, verblevel, "\nInit pos: %d\n", start);
@@ -728,11 +728,10 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
       fread(lt->wl[0]+li->n_l,    sizeof(PREC_LNDATA), nread, fp);
       /* Isotope ID:                                                          */
       fseek(fp, ifirst*sizeof(short)       + iso_loc, SEEK_SET);
-      fread(lt->isoid[0]+li->n_l, sizeof(unsigned short),       nread, fp);
-if(lt->isoid[0][li->n_l] < 0){
-printf("ERROR i = %d\n", lt->isoid[0][li->n_l]);
-lt->isoid[0][li->n_l] = 0;
-}
+      fread(lt->isoid[0]+li->n_l, sizeof(short),       nread, fp);
+//for (int k=0; k<nread; k++)
+//    if (j == 0)
+//      printf("isoid = %d at index k = %d of %d of isotope i = %d in file j = %d\n", lt->isoid[0][li->n_l+k], k, nread, i, j);
       /* Lower-state energy:                                                  */
       fseek(fp, ifirst*sizeof(PREC_LNDATA) + el_loc,  SEEK_SET);
       fread(lt->elow[0]+li->n_l,  sizeof(PREC_LNDATA), nread, fp);
@@ -751,13 +750,14 @@ lt->isoid[0][li->n_l] = 0;
     lt->wl[0]    = (PREC_LNDATA *)realloc(lt->wl[0],    li->n_l*sizeof(PREC_LNDATA));
     lt->elow[0]  = (PREC_LNDATA *)realloc(lt->elow[0],  li->n_l*sizeof(PREC_LNDATA));
     lt->gf[0]    = (PREC_LNDATA *)realloc(lt->gf[0],    li->n_l*sizeof(PREC_LNDATA));
-    lt->isoid[0] = (unsigned short *)realloc(lt->isoid[0], li->n_l*sizeof(unsigned short));
+    lt->isoid[0] = (short *)realloc(lt->isoid[0], li->n_l*sizeof(short));
 
     totiso += niso;
   
     fclose(fp);               /* Close file                                   */
   }
   tr->pi |= TRPI_READDATA;  /* Update progress indicator                    */
+  free(isotran);
   return li->n_l;           /* Return the number of lines read              */
 }
 

@@ -538,9 +538,9 @@ computemolext(struct transit *tr, /* transit struct                         */
     }
     /* Multiply by the species density:                                     */
     if (!permol){
-      //fprintf(stderr, "%d\n", i);
-      //fprintf(stderr, "%d\n", iso->imol[i]);
-      //fprintf(stderr, "%g\n", density[iso->imol[i]]);
+      //printf("%d\n", i);
+      //printf("%d\n", iso->imol[i]);
+      //printf("%g\n", density[iso->imol[i]]);
       propto_k *= density[iso->imol[i]];
     }
 
