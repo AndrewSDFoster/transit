@@ -475,6 +475,7 @@ computemolext(struct transit *tr, /* transit struct                         */
     if ((wavn < tr->wns.i) || (wavn > tr->owns.v[onwn-1]))
       continue;
 
+      //printf("%d %d %g %g %g %g\n", i, iso->imol[i], density[iso->imol[i]], lt->gf[0][ln], lt->wl[0][ln], lt->elow[0][ln]);
     /* Calculate the extinction coefficient except the broadening factor:   */
     propto_k = iso->isoratio[0][i]               *       /* Density            */
             SIGCTE     * lt->gf[0][ln]           *       /* Constant * gf      */

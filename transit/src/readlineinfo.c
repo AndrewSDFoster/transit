@@ -586,7 +586,6 @@ readinfo_tli(struct transit *tr,
                    "readtli_bin() return error code %i.\n", rn);
       return -6;
     }
-    li->endinfo[i] = ftell(fp);
     transitprint(3, verblevel, "TLI file read from %g to %g microns.\n",
                                li->wi, li->wf);
 
@@ -597,6 +596,7 @@ readinfo_tli(struct transit *tr,
     lt->efct = TLI_E_UNITS;
 
     /* Close TLI file pointer, set progres indicator and return success:      */
+    li->endinfo[i] = ftell(fp);
     fclose(fp);
   }
 
@@ -624,6 +624,7 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
       niso,              /* Number of isotopes in line transition data      */
       totiso,            // Total number of isos for all previous transition datas
       nread,             /* Number of transitions to read for each isotope  */
+      nreadtot,
       *isotran,          /* Number of transitions per isotope in TLI        */
       start,             /* Position of first LT for isotope in TLI         */
       i, j,              /* for-loop indices                                */
@@ -709,7 +710,10 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
     el_loc  = iso_loc + (nlines)*sizeof(short      );
     gf_loc  = el_loc  + (nlines)*sizeof(PREC_LNDATA);
   
+    nreadtot = 0;
+
     for (i=totiso; i<totiso+niso; i++){
+printf("File %d, isotope %d\n", j, i);
       transitprint(3, verblevel, "\nInit pos: %d\n", start);
       /* Do binary search in units of TLI:                                    */
       datafileBS(fp, start, isotran[i], iniw, &ifirst, sizeof(PREC_LNDATA), 0);
@@ -729,9 +733,15 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
       /* Isotope ID:                                                          */
       fseek(fp, ifirst*sizeof(short)       + iso_loc, SEEK_SET);
       fread(lt->isoid[0]+li->n_l, sizeof(short),       nread, fp);
-//for (int k=0; k<nread; k++)
-//    if (j == 0)
-//      printf("isoid = %d at index k = %d of %d of isotope i = %d in file j = %d\n", lt->isoid[0][li->n_l+k], k, nread, i, j);
+//for (int k=li->n_l; k<li->n_l+nread; k++){
+//  lt->isoid[0][k] = i-totiso;
+//  if (lt->wl[0][k] == 0){
+//    nread = k;
+//    break;
+//  }
+//}
+//for (int k=0; k<li->n_l+nread; k++)
+//  printf("%d %g\n", lt->isoid[0][k], lt->wl[0][k]);
       /* Lower-state energy:                                                  */
       fseek(fp, ifirst*sizeof(PREC_LNDATA) + el_loc,  SEEK_SET);
       fread(lt->elow[0]+li->n_l,  sizeof(PREC_LNDATA), nread, fp);
@@ -741,6 +751,7 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
   
       /* Count the number of lines:                                           */
       li->n_l += nread;
+      nreadtot += nread;
       /* Move the wl offset to next isotope:                                  */
       start += isotran[i]*sizeof(double);
       offset += isotran[i];
@@ -750,7 +761,7 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
     lt->wl[0]    = (PREC_LNDATA *)realloc(lt->wl[0],    li->n_l*sizeof(PREC_LNDATA));
     lt->elow[0]  = (PREC_LNDATA *)realloc(lt->elow[0],  li->n_l*sizeof(PREC_LNDATA));
     lt->gf[0]    = (PREC_LNDATA *)realloc(lt->gf[0],    li->n_l*sizeof(PREC_LNDATA));
-    lt->isoid[0] = (short *)realloc(lt->isoid[0], li->n_l*sizeof(short));
+    lt->isoid[0] = (short       *)realloc(lt->isoid[0], li->n_l*sizeof(short      ));
 
     totiso += niso;
   
