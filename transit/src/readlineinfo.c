@@ -712,8 +712,10 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
   
     nreadtot = 0;
 
+    offset = 0;
+
     for (i=totiso; i<totiso+niso; i++){
-printf("File %d, isotope %d\n", j, i);
+//printf("File %d, isotope %d\n", j, i);
       transitprint(3, verblevel, "\nInit pos: %d\n", start);
       /* Do binary search in units of TLI:                                    */
       datafileBS(fp, start, isotran[i], iniw, &ifirst, sizeof(PREC_LNDATA), 0);
@@ -726,6 +728,7 @@ printf("File %d, isotope %d\n", j, i);
       transitprint(3, verblevel, "\nLT Pos: %ld\n", li->n_l);
       /* Number of transitions to read:                                       */
       nread = ilast - ifirst + 1;
+//printf("%d %d %d %d %d %d\n", nread, nlines, isotran[i], ilast, ilast-offset, offset);
       /* Move pointer to each section and read info:                          */
       /* Wavelength:                                                          */
       fseek(fp, ifirst*sizeof(PREC_LNDATA) + wl_loc,  SEEK_SET);
