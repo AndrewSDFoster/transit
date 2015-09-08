@@ -252,7 +252,8 @@ struct isotopes{
   prop_db **db;        /* Database's info [n_db]                             */
   int n_db,            /* Number of databases                                */
       n_i,             /* Number of isotopes                                 */
-      nmol;            /* Number of different molecules having a line list   */
+      nmol,            /* Number of different molecules having a line list   */
+      correliso;    /* total correliso from all TLIs                      */
 };
 
 struct molecules{

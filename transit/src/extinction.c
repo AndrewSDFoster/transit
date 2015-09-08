@@ -475,7 +475,6 @@ computemolext(struct transit *tr, /* transit struct                         */
     if ((wavn < tr->wns.i) || (wavn > tr->owns.v[onwn-1]))
       continue;
 
-      //printf("%d %d %g %g %g %g\n", i, iso->imol[i], density[iso->imol[i]], lt->gf[0][ln], lt->wl[0][ln], lt->elow[0][ln]);
     /* Calculate the extinction coefficient except the broadening factor:   */
     propto_k = iso->isoratio[0][i]               *       /* Density            */
             SIGCTE     * lt->gf[0][ln]           *       /* Constant * gf      */
@@ -491,8 +490,6 @@ computemolext(struct transit *tr, /* transit struct                         */
       kmin[m] = (double) fmin(kmin[m], propto_k);
     }
   }
-
-//printf("OINK\n");
 
   /* Compute the spectra, proceed for every line:                           */
   for(ln=0; ln<nlines; ln++){
@@ -515,7 +512,6 @@ computemolext(struct transit *tr, /* transit struct                         */
       iown++;
 
     /* Check if the next line falls on the same sampling index:             */
-//printf("%d != %d && %d == %d\n", ln, nlines-1, lt->isoid[0][ln+1], i);
     while (ln != nlines-1 && lt->isoid[0][ln+1] == i){
       next_wn = 1.0/(lt->wl[0][ln+1]*lt->wfct);
       if (fabs(next_wn - tr->owns.v[iown]) < odwn){
@@ -539,9 +535,6 @@ computemolext(struct transit *tr, /* transit struct                         */
     }
     /* Multiply by the species density:                                     */
     if (!permol){
-      //printf("%d\n", i);
-      //printf("%d\n", iso->imol[i]);
-      //printf("%g\n", density[iso->imol[i]]);
       propto_k *= density[iso->imol[i]];
     }
 
@@ -587,8 +580,6 @@ computemolext(struct transit *tr, /* transit struct                         */
     }
     neval++;
   }
-
-//printf("MOO\n");
 
   /* Downsample ktmp to the final sampling size:                            */
   for (m=0; m < Nmol; m++)

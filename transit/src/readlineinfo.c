@@ -144,10 +144,8 @@ readtli_bin(FILE *fp,
   unsigned short ndb;    /* Number of databases                             */
   unsigned short rs;     /* FINDME: auxiliary what??                        */
   unsigned short nT,     /* Number of temperatures per database             */
-                 niso=0, /* Cumulative number of isotopes per database      */
                  nDBiso; /* Number of isotopes per database                 */
   PREC_ZREC *T, *Z;      /* Auxiliary temperature and part. func. pointers  */
-  int correliso=0;       /* Isotopes correlative number                     */
   int i, j;
   struct isotopes *iso=tr->ds.iso;
 
@@ -208,27 +206,26 @@ readtli_bin(FILE *fp,
     transitprint(3, verblevel, "  Temperatures: [%6.1f, %6.1f, ..., %6.1f]\n",
                                T[0], T[1], T[nT-1]);
 
-    //printf("%d %d %d\n", correliso, nDBiso, correliso+nDBiso);
     /* Reallocate memory to account for new isotopes:                       */
     iso->db[0] = (prop_db *)realloc(iso->db[0],
                                       (ndb+iso->n_db)*sizeof(prop_db));
     li->isov[0]  = (prop_isov  *)realloc(li->isov[0],
-                                      (correliso+nDBiso+iso->n_i)*sizeof(prop_isov));
+                                      (iso->correliso+nDBiso)*sizeof(prop_isov));
     iso->isof[0] = (prop_isof  *)realloc(iso->isof[0],
-                                      (correliso+nDBiso+iso->n_i)*sizeof(prop_isof));
+                                      (iso->correliso+nDBiso)*sizeof(prop_isof));
     iso->isoratio[0] = (double *)realloc(iso->isoratio[0],
-                                      (correliso+nDBiso+iso->n_i)*sizeof(double));
+                                      (iso->correliso+nDBiso)*sizeof(double));
     /* Allocate memory for this DB's partition function:                    */
-    li->isov[0][correliso+iso->n_i].z = (double *)calloc((correliso+nDBiso+iso->n_i)*nT,
+    li->isov[0][iso->correliso].z = (double *)calloc((iso->correliso+nDBiso)*nT,
                                              sizeof(double));
 
     transitDEBUG(21, verblevel, "So far, cumIsotopes: %i, at databases: %i, "
-                 "position %li.\n", correliso+iso->n_i, i, ftell(fp));
+                 "position %li.\n", iso->correliso, i, ftell(fp));
 
     /* Display database general info:                                       */
-    transitDEBUG(23, verblevel, "DB %i: '%s' has %i (%i) temperatures, "
+    transitDEBUG(3, verblevel, "DB %i: '%s' has %i (%i) temperatures, "
                  "%i (%i) isotopes, and starts at cumulative isotope %i.\n",
-                 iso->isof[0][correliso+iso->n_i].d, iso->db[0][i].n,
+                 iso->isof[0][iso->correliso].d, iso->db[0][i].n,
                  li->db[0][i].t, nT, 
                  iso->db[0][i].i, nDBiso, iso->db[0][i].s);
 
@@ -236,53 +233,52 @@ readtli_bin(FILE *fp,
     /* Read the isotopes from this data base:                               */
     for (j=0; j<nDBiso; j++){
       /* Store isotopes'  DB index number:                                  */
-      iso->isof[0][correliso+iso->n_i].d = i;
-      transitprint(10, verblevel, "  Correlative isotope number: %d", correliso+iso->n_i);
+      iso->isof[0][iso->correliso].d = i;
+      transitprint(10, verblevel, "  Correlative isotope number: %d", iso->correliso);
 
       /* Read isotopes' name:                                               */
       fread(&rs, sizeof(unsigned short), 1, fp);
-      iso->isof[0][correliso+iso->n_i].n = (char *)calloc(rs+1, sizeof(char));
-      fread(iso->isof[0][correliso+iso->n_i].n, sizeof(char), rs, fp);
-      iso->isof[0][correliso+iso->n_i].n[rs] = '\0';
+      iso->isof[0][iso->correliso].n = (char *)calloc(rs+1, sizeof(char));
+      fread(iso->isof[0][iso->correliso].n, sizeof(char), rs, fp);
+      iso->isof[0][iso->correliso].n[rs] = '\0';
       transitprint(2,  verblevel, "  Isotope (%i/%i): '%s'\n", j+1, nDBiso,
-                                  iso->isof[0][correliso+iso->n_i].n);
+                                  iso->isof[0][iso->correliso].n);
       transitprint(30, verblevel, "   Isotope name size: %d'\n", rs);
 
       /* Read mass and isotopic ratio:                                      */
-      fread(&iso->isof[0][correliso+iso->n_i].m,   sizeof(double), 1, fp);
-      fread((iso->isoratio[0]+correliso+iso->n_i), sizeof(double), 1, fp);
+      fread(&iso->isof[0][iso->correliso].m,   sizeof(double), 1, fp);
+      fread((iso->isoratio[0]+iso->correliso), sizeof(double), 1, fp);
       transitprint(3,  verblevel, "    Mass:  %g u (%g gr)\n",
-                          iso->isof[0][correliso+iso->n_i].m, iso->isof[0][correliso+iso->n_i].m*AMU);
+                          iso->isof[0][iso->correliso].m, iso->isof[0][iso->correliso].m*AMU);
       transitprint(3,  verblevel, "    Isotopic ratio: %.4g\n",
-                          iso->isoratio[0][correliso+iso->n_i]);
+                          iso->isoratio[0][iso->correliso]);
       transitDEBUG(30, verblevel, "    File position: %li.\n", ftell(fp));
 
       /* Read partition function:                                           */
-      Z  = li->isov[0][correliso+iso->n_i].z = li->isov[0][correliso+iso->n_i-j].z + nT*j;
+      Z  = li->isov[0][iso->correliso].z = li->isov[0][iso->correliso-j].z + nT*j;
       fread(Z,  sizeof(double), nT, fp);
-      li->isov[0][correliso+iso->n_i].n = nT;
+      li->isov[0][iso->correliso].n = nT;
 
-      transitprint(10, verblevel, "    Part Function:    [%.2e, %.2e, ..., "
-                                  "%.2e]\n", Z[0],  Z[1],  Z[nT-1]);
-      correliso++;
+      transitprint(10, verblevel, "    Part Function %d:    [%.2e, %.2e, ..., "
+                                  "%.2e]\n", iso->correliso, Z[0],  Z[1],  Z[nT-1]);
+      iso->correliso++;
     }
 
     /* Update cumulative isotope count (index of first isitope in this DB): */
-    iso->db[0][i].s = niso;
-    niso += nDBiso;
+    iso->db[0][i].s = iso->correliso-nDBiso;
   }
 
   transitprint(3, verblevel, "Cumulative number of isotopes per DB: [");
-  for (i=iso->n_db; i<iso->n_db+ndb; i++)
+  for (i=0; i<iso->n_db+ndb; i++)
     transitprint(3, verblevel,"%2d, ", iso->db[0][i].s);
   transitprint(3, verblevel, "\b\b].\n");
-  transitprint(3, verblevel, "acum Iso: %2d.\n", niso);
+  transitprint(3, verblevel, "acum Iso: %2d.\n", iso->n_i);
 
   //transitprint(3, verblevel, "Iso ratio: %.5g %.5g %.5g %.5g\n", iso->isoratio[0][0], iso->isoratio[0][1], iso->isoratio[0][2], iso->isoratio[0][3]);
 
   /* Update structure values:                                               */
-  li->ni     += niso;            /* Number of isotopes                           */
-  iso->n_i   += niso;
+  li->ni     = iso->correliso;            /* Number of isotopes                           */
+  iso->n_i   = iso->correliso;
   li->ndb    += ndb;            /* Number of databases                          */
   iso->n_db  += ndb;          /* Number of databases                          */
   /* Position of first line data (there's still one integer to be read):    */
@@ -344,12 +340,6 @@ setimol(struct transit *tr){
       }
     }
   }
-//  for(i=0; i<tr->ds.iso->n_i; i++){
-//    printf("setimol Partition function #%d, length %d\n", i, tr->ds.li->isov[0][i].n);
-//    for(j=0; j<tr->ds.li->isov[0][i].n; j++){
-//      printf("%e\n", tr->ds.li->isov[0][i].z[j]);
-//    }
-//  }
   return 0;
 }
 
@@ -531,6 +521,7 @@ readinfo_tli(struct transit *tr,
   li->endinfo      = (long          *)calloc(th->ntli, sizeof(long    ));
 
  
+  iso->correliso=0;       /* Isotopes correlative number                     */
 
   for(i=0; i < th->ntli; i++){
     //th->tlifile[i] = th->tlifile[i];
@@ -711,11 +702,9 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
     gf_loc  = el_loc  + (nlines)*sizeof(PREC_LNDATA);
   
     nreadtot = 0;
-
     offset = 0;
 
     for (i=totiso; i<totiso+niso; i++){
-//printf("File %d, isotope %d\n", j, i);
       transitprint(3, verblevel, "\nInit pos: %d\n", start);
       /* Do binary search in units of TLI:                                    */
       datafileBS(fp, start, isotran[i], iniw, &ifirst, sizeof(PREC_LNDATA), 0);
@@ -728,7 +717,6 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
       transitprint(3, verblevel, "\nLT Pos: %ld\n", li->n_l);
       /* Number of transitions to read:                                       */
       nread = ilast - ifirst + 1;
-//printf("%d %d %d %d %d %d\n", nread, nlines, isotran[i], ilast, ilast-offset, offset);
       /* Move pointer to each section and read info:                          */
       /* Wavelength:                                                          */
       fseek(fp, ifirst*sizeof(PREC_LNDATA) + wl_loc,  SEEK_SET);
@@ -736,15 +724,6 @@ int readdatarng(struct transit *tr,   /* transit structure                  */
       /* Isotope ID:                                                          */
       fseek(fp, ifirst*sizeof(short)       + iso_loc, SEEK_SET);
       fread(lt->isoid[0]+li->n_l, sizeof(short),       nread, fp);
-//for (int k=li->n_l; k<li->n_l+nread; k++){
-//  lt->isoid[0][k] = i-totiso;
-//  if (lt->wl[0][k] == 0){
-//    nread = k;
-//    break;
-//  }
-//}
-//for (int k=0; k<li->n_l+nread; k++)
-//  printf("%d %g\n", lt->isoid[0][k], lt->wl[0][k]);
       /* Lower-state energy:                                                  */
       fseek(fp, ifirst*sizeof(PREC_LNDATA) + el_loc,  SEEK_SET);
       fread(lt->elow[0]+li->n_l,  sizeof(PREC_LNDATA), nread, fp);
